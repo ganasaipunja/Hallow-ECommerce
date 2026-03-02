@@ -8,8 +8,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
-# Render Dashboard lo key 'SECRET_KEY' ani unte, ikkada 'SECRET_KEY' ani marchali
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
+# Render Dashboard lo meeru 'DJANGO_SECRET_KEY' ani isthe, ikkada kooda ade peru undali
+SECRET_KEY = os.environ.get('SECRET_KEY', os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-default-key'))
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['*']
@@ -31,7 +31,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Static files (Admin CSS) kosam
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Admin CSS fix
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -63,8 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database logic
-# Render lo MYSQL_DATABASE variable unte MySQL ki connect avthundi, lekapothe local sqlite3 vaaduthundi
+# Database logic for Aiven MySQL
 if os.environ.get('MYSQL_DATABASE'):
     DATABASES = {
         'default': {
@@ -73,10 +72,13 @@ if os.environ.get('MYSQL_DATABASE'):
             'USER': os.environ.get('MYSQL_USER'),
             'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
             'HOST': os.environ.get('MYSQL_HOST'),
-            'PORT': os.environ.get('MYSQL_PORT', '3306'),
+            'PORT': os.environ.get('MYSQL_PORT', '28747'), # Aiven default port
             'OPTIONS': {
                 'charset': 'utf8mb4',
-                'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}
+                # SSL Error (2026) FIX: Self-signed certificate check ni skip chestundi
+                'ssl': {
+                    'ca': None, 
+                },
             },
         }
     }
@@ -94,13 +96,12 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'ganasaisai624@gmail.com' 
-# Render Dashboard lo ee password kachithanga ivvali
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD') 
 DEFAULT_FROM_EMAIL = 'Hallow <ganasaisai624@gmail.com>'
 
 AUTH_USER_MODEL = 'api.User'
 
-# Static and Media files settings for Production (Render)
+# Static and Media files settings
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
