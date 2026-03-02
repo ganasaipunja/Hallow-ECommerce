@@ -50,46 +50,58 @@ def home_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    """Finalizes user registration after OTP verification."""
+    """Finalizes registration after Email OTP verification."""
     email = request.data.get('email')
     otp_received = request.data.get('otp')
     password = request.data.get('password')
+    username = request.data.get('username')
+
+    if not email or not otp_received:
+        return Response({'error': 'Email and OTP are required'}, status=400)
 
     try:
-        # 1. Fetch the temporary user created by otp_send
+        # 1. Fetch the user created during otp_send
         user = User.objects.get(email=email)
         
-        # 2. Validate OTP
+        # 2. Check if user is already active (already registered)
+        if user.is_active and user.password:
+             return Response({'error': 'User already registered. Please login.'}, status=400)
+
+        # 3. Validate OTP
         expiry = user.otp_created_at + timedelta(minutes=10) if user.otp_created_at else None
         if user.otp != otp_received:
             return Response({'error': 'Invalid Email OTP'}, status=400)
         if expiry and timezone.now() > expiry:
-            return Response({'error': 'OTP expired'}, status=400)
+            return Response({'error': 'OTP expired. Please request a new one.'}, status=400)
             
-        # 3. Validate Password and Username via Serializer
-        # We use partial=True because the user already exists in the DB
-        ser = UserRegisterSerializer(user, data=request.data, partial=True)
-        if not ser.is_valid():
-            return Response(ser.errors, status=400)
+        # 4. Update Username and Password
+        if username:
+            user.username = username
         
-        # 4. PERMANENT FIX: Save the user and hash the password
-        user = ser.save()
         if password:
-            user.set_password(password) # THIS HASHES THE PASSWORD
+            user.set_password(password) # Password Hashing is MUST
+        else:
+            return Response({'error': 'Password is required'}, status=400)
         
-        user.is_active = True           # THIS ACTIVATES THE USER PERMANENTLY
-        user.otp = None                 # Clear OTP after successful use
+        # 5. Activate User
+        user.is_active = True 
+        user.otp = None # Clear OTP after success
         user.save()
         
+        # 6. Generate Token
         token, _ = Token.objects.get_or_create(user=user)
+        
         return Response({
             'token': token.key,
             'user_id': user.id,
             'username': user.username,
-        }, status=status.HTTP_201_CREATED)
+            'message': 'Registration successful!'
+        }, status=201)
 
     except User.DoesNotExist:
-        return Response({'error': 'Please request an OTP first'}, status=400)
+        return Response({'error': 'No registration request found for this email. Please send OTP first.'}, status=400)
+    except Exception as e:
+        return Response({'error': f'Something went wrong: {str(e)}'}, status=500)
         
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -163,9 +175,9 @@ def login(request):
         user.save()
 
         # LOG THE OTP: Check your terminal/console to see the code!
-        print(f"\n***********************************")
-        print(f"LOGIN OTP FOR {user.username}: {otp}")
-        print(f"***********************************\n")
+        # print(f"\n***********************************")
+        # print(f"LOGIN OTP FOR {user.username}: {otp}")
+        # print(f"***********************************\n")
 
         # Send actual mail
         try:

@@ -112,8 +112,3 @@ REST_FRAMEWORK = {
     ],
 }
 
-STATIC_URL = '/static/' # Slash mundu undali
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# WhiteNoise production settings
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

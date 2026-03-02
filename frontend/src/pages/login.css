@@ -14,7 +14,7 @@
   
   /* Replace URL with your high-res background image */
   background: linear-gradient(rgba(34, 15, 42, 0.6), rgba(40, 15, 42, 0.6)), 
-              url('design_1.png') no-repeat center center fixed;
+              url('/design_1.png') no-repeat center center fixed;
   background-size: cover;
   
   /* Smooth Fade-In when page loads */

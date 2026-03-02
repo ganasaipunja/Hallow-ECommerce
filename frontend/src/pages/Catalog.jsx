@@ -14,7 +14,7 @@ export default function Catalog({ token }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const API_URL = "https://hallow-backend.onrender.com";
+  const API_URL = "http://127.0.0.1:8000";
 
   const getImageUrl = (path) => {
     if (!path) return "";
@@ -167,5 +167,4 @@ export default function Catalog({ token }) {
       </div>
     </div>
   )
-
 }

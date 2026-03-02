@@ -203,7 +203,7 @@ export default function Login({ onLogin }) {
               </button>
 
               <button type="button" onClick={() => { setIsRegister(!isRegister); setVerifyingEmail(false); setVerifyingLogin(false); }} style={{ background: 'none', border: 'none', color: '#2563eb', marginTop: '1.2rem', width: '100%', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600' }}>
-                {isRegister ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+                {isRegister ? 'Already have an account? Login' : "Don't have an account? Create Now"}
               </button>
             </form>
           )}
