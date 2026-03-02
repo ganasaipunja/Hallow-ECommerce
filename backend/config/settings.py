@@ -76,6 +76,7 @@ if os.environ.get('MYSQL_DATABASE'):
             'PORT': os.environ.get('MYSQL_PORT', '3306'),
             'OPTIONS': {
                 'charset': 'utf8mb4',
+                'ssl': {'ca': '/etc/ssl/certs/ca-certificates.crt'}
             },
         }
     }
