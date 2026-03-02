@@ -121,11 +121,11 @@ pip install Pillow
 Set DB env (or edit `config/settings.py`):
 
 ```bash
-set MYSQL_DATABASE=ecommerce
+set MYSQL_DATABASE=your database name
 set MYSQL_USER=root
-set MYSQL_PASSWORD=Ganasai@963
-set MYSQL_HOST=127.0.0.1
-set MYSQL_PORT=3306
+set MYSQL_PASSWORD=yourpassword
+set MYSQL_HOST=your host
+set MYSQL_PORT=yourport number
 ```
 
 Create migrations and apply (first time):
