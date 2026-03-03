@@ -5,7 +5,7 @@ import { getCart, cartRemove, orderSummary, cartUpdate } from '../api'
 
 export default function Cart({ token }) {
   // UPDATED: Use your computer's IP instead of 127.0.0.1
-  const API_URL = "http://192.168.16.13:8000";
+  const API_URL = "https://hallow-backend.onrender.com";
   
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)

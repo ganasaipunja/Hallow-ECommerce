@@ -10,7 +10,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   
   // Use your computer's IP
-  const API_URL = "http://192.168.16.13:8000";
+  const API_URL = "https://hallow-backend.onrender.com";
 
   useEffect(() => {
     if (banners.length > 0) {

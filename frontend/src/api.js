@@ -1,4 +1,4 @@
-const BASE = 'http://192.168.16.13:8000/api';
+const BASE = 'https://hallow-backend.onrender.com';
 
 function headers(token) {
   const h = { 'Content-Type': 'application/json' };
