@@ -102,6 +102,8 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 AUTH_USER_MODEL = 'api.User'
 
+EMAIL_TIMEOUT = 20
+
 # Static and Media files settings
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
