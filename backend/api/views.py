@@ -129,7 +129,7 @@ def otp_send(request):
                 f'Your code is: {otp}',
                 settings.EMAIL_HOST_USER, # noreply badulu sender user ni vadali
                 [email],
-                fail_silently=True, 
+                fail_silently=False, 
             )
         except Exception as e:
             print(f"Email Error: {str(e)}")
@@ -325,3 +325,4 @@ class OrderList(generics.ListAPIView):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).order_by('-id').prefetch_related('items')
+
