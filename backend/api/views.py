@@ -4,6 +4,8 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
+import requests
+import os
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -28,6 +30,37 @@ from .serializers import (
 def _generate_otp():
     """Generates a 6-digit numeric OTP."""
     return ''.join(random.choices(string.digits, k=6))
+
+def send_otp_email_api(to_email, otp, subject="Your Verification Code"):
+    """
+    Sends an email using the Brevo (Sendinblue) API instead of SMTP
+    to bypass Render's free tier outgoing port blocks.
+    """
+    api_key = os.environ.get('BREVO_API_KEY')
+    if not api_key:
+        raise Exception("BREVO_API_KEY environment variable is missing")
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+    
+    sender_email = settings.DEFAULT_FROM_EMAIL or "noreply@hallow-ecommerce.com"
+    
+    payload = {
+        "sender": {"name": "Hallow Ecommerce", "email": sender_email},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": f"<html><body><h3>Your code is: <strong>{otp}</strong></h3><p>This code will expire in 10 minutes.</p></body></html>"
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    
+    if response.status_code not in [200, 201, 202]:
+        raise Exception(f"Brevo API error: {response.text}")
+    return True
 
 # --- HOME PAGE --- 
 @api_view(['GET'])
@@ -122,15 +155,9 @@ def otp_send(request):
         user.otp_created_at = now
         user.save()
 
-        # Email sending logic using SMTP Relay
+        # Email sending logic using Brevo API
         try:
-            send_mail(
-                'Your HALLOW Verification Code',
-                f'Your code is: {otp}',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False, 
-            )
+            send_otp_email_api(to_email=email, otp=otp, subject='Your HALLOW Verification Code')
         except Exception as e:
             # This will show in Render Logs if it fails
             print(f"Email Error: {str(e)}")
@@ -172,13 +199,7 @@ def login(request):
         user.save()
 
         try:
-            send_mail(
-                'Your Login Verification Code',
-                f'Your code is: {otp}',
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
+            send_otp_email_api(to_email=user.email, otp=otp, subject='Your Login Verification Code')
         except Exception as e:
             print(f"Mail Error: {e}")
             return Response({'error': f"Failed to send login email. Error: {str(e)}"}, status=500)
