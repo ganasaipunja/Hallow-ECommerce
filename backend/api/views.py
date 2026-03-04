@@ -3,7 +3,7 @@ import string
 from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
-from django.conf import settings # Settings import cheyali
+from django.conf import settings 
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -64,7 +64,7 @@ def register(request):
         user = User.objects.get(email=email)
         
         # User already registered check
-        if user.is_active and user.has_usable_password(): # Password check update
+        if user.is_active and user.has_usable_password():
              return Response({'error': 'User already registered. Please login.'}, status=400)
 
         # Validate OTP
@@ -110,7 +110,7 @@ def otp_send(request):
     now = timezone.now()
 
     if email:
-        # returns active=False initially to distinguish from fully registered users
+        # returns active=False initially
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
@@ -122,16 +122,17 @@ def otp_send(request):
         user.otp_created_at = now
         user.save()
 
-        # OTP Send Fix: fail_silently=True pettanu
+        # Email sending logic
         try:
             send_mail(
                 'Your HALLOW Verification Code',
                 f'Your code is: {otp}',
-                settings.EMAIL_HOST_USER, # noreply badulu sender user ni vadali
+                settings.EMAIL_HOST_USER, # From Email must be your Gmail
                 [email],
                 fail_silently=False, 
             )
         except Exception as e:
+            # This will show in Render Logs if it fails
             print(f"Email Error: {str(e)}")
 
         return Response({'message': 'OTP generated. Check email or database.'})
@@ -139,15 +140,11 @@ def otp_send(request):
     elif phone:
         user, created = User.objects.get_or_create(
             phone=phone,
-            defaults={
-                'username': f'user_{phone}',
-                'is_active': False
-            }
+            defaults={'username': f'user_{phone}', 'is_active': False}
         )
         user.otp = otp
         user.otp_created_at = now
         user.save()
-        print(f'--- DEBUG OTP for {phone}: {otp} ---')
         return Response({'message': 'OTP sent to phone'})
 
     return Response({'error': 'Email or Phone required'}, status=400)
@@ -179,7 +176,7 @@ def login(request):
                 f'Your code is: {otp}',
                 settings.EMAIL_HOST_USER,
                 [user.email],
-                fail_silently=True,
+                fail_silently=False,
             )
         except Exception as e:
             print(f"Mail Error: {e}")
@@ -325,4 +322,3 @@ class OrderList(generics.ListAPIView):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).order_by('-id').prefetch_related('items')
-
