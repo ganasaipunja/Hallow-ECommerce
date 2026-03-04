@@ -134,6 +134,7 @@ def otp_send(request):
         except Exception as e:
             # This will show in Render Logs if it fails
             print(f"Email Error: {str(e)}")
+            return Response({'error': f"Failed to send email. Ensure Render environment variables are correct. Error: {str(e)}"}, status=500)
 
         return Response({'message': 'OTP generated. Check email or database.'})
 
@@ -180,6 +181,7 @@ def login(request):
             )
         except Exception as e:
             print(f"Mail Error: {e}")
+            return Response({'error': f"Failed to send login email. Error: {str(e)}"}, status=500)
 
         return Response({
             'step': '2FA_REQUIRED',
