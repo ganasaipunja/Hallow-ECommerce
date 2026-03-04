@@ -3,6 +3,7 @@ import string
 from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
+from django.conf import settings # Settings import cheyali
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -60,35 +61,31 @@ def register(request):
         return Response({'error': 'Email and OTP are required'}, status=400)
 
     try:
-        # 1. Fetch the user created during otp_send
         user = User.objects.get(email=email)
         
-        # 2. Check if user is already active (already registered)
-        if user.is_active and user.password:
+        # User already registered check
+        if user.is_active and user.has_usable_password(): # Password check update
              return Response({'error': 'User already registered. Please login.'}, status=400)
 
-        # 3. Validate OTP
+        # Validate OTP
         expiry = user.otp_created_at + timedelta(minutes=10) if user.otp_created_at else None
         if user.otp != otp_received:
             return Response({'error': 'Invalid Email OTP'}, status=400)
         if expiry and timezone.now() > expiry:
             return Response({'error': 'OTP expired. Please request a new one.'}, status=400)
             
-        # 4. Update Username and Password
         if username:
             user.username = username
         
         if password:
-            user.set_password(password) # Password Hashing is MUST
+            user.set_password(password)
         else:
             return Response({'error': 'Password is required'}, status=400)
         
-        # 5. Activate User
         user.is_active = True 
-        user.otp = None # Clear OTP after success
+        user.otp = None 
         user.save()
         
-        # 6. Generate Token
         token, _ = Token.objects.get_or_create(user=user)
         
         return Response({
@@ -99,7 +96,7 @@ def register(request):
         }, status=201)
 
     except User.DoesNotExist:
-        return Response({'error': 'No registration request found for this email. Please send OTP first.'}, status=400)
+        return Response({'error': 'No registration request found for this email.'}, status=400)
     except Exception as e:
         return Response({'error': f'Something went wrong: {str(e)}'}, status=500)
         
@@ -113,34 +110,38 @@ def otp_send(request):
     now = timezone.now()
 
     if email:
-        # We use get_or_create so returning users can also get a new OTP
+        # returns active=False initially to distinguish from fully registered users
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
                 'username': email.split('@')[0],
-                'is_active': True # Ensure they are active from the start
+                'is_active': False 
             }
         )
         user.otp = otp
         user.otp_created_at = now
         user.save()
 
-        send_mail(
-            'Your HALLOW Verification Code',
-            f'Your code is: {otp}',
-            'noreply@hallow.com',
-            [email],
-            fail_silently=False,
-        )
-        return Response({'message': 'OTP sent to email'})
+        # OTP Send Fix: fail_silently=True pettanu
+        try:
+            send_mail(
+                'Your HALLOW Verification Code',
+                f'Your code is: {otp}',
+                settings.EMAIL_HOST_USER, # noreply badulu sender user ni vadali
+                [email],
+                fail_silently=True, 
+            )
+        except Exception as e:
+            print(f"Email Error: {str(e)}")
+
+        return Response({'message': 'OTP generated. Check email or database.'})
 
     elif phone:
-        # Same for phone users
         user, created = User.objects.get_or_create(
             phone=phone,
             defaults={
                 'username': f'user_{phone}',
-                'is_active': True
+                'is_active': False
             }
         )
         user.otp = otp
@@ -157,14 +158,12 @@ def login(request):
     """Standard Login with 2FA/OTP logic."""
     ser = UserLoginSerializer(data=request.data)
     
-    # If username/password are wrong, this returns 400 with 'Invalid username/password'
     if not ser.is_valid():
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         
     user = ser.validated_data['user']
     otp_received = request.data.get('otp')
 
-    # STEP 1: Correct Password, no OTP provided yet
     if not otp_received:
         if not user.email:
             return Response({'error': 'No email linked to this account.'}, status=400)
@@ -174,19 +173,13 @@ def login(request):
         user.otp_created_at = timezone.now()
         user.save()
 
-        # LOG THE OTP: Check your terminal/console to see the code!
-        # print(f"\n***********************************")
-        # print(f"LOGIN OTP FOR {user.username}: {otp}")
-        # print(f"***********************************\n")
-
-        # Send actual mail
         try:
             send_mail(
                 'Your Login Verification Code',
                 f'Your code is: {otp}',
-                'noreply@yourstore.com',
+                settings.EMAIL_HOST_USER,
                 [user.email],
-                fail_silently=False,
+                fail_silently=True,
             )
         except Exception as e:
             print(f"Mail Error: {e}")
@@ -196,21 +189,16 @@ def login(request):
             'message': 'OTP sent to your email.'
         }, status=200)
 
-    # STEP 2: OTP provided - Verify it
+    # STEP 2: Verify OTP
     expiry = user.otp_created_at + timedelta(minutes=10) if user.otp_created_at else None
     
-    # Check if OTP matches
     if user.otp != otp_received:
         return Response({'error': 'Invalid 2FA code'}, status=status.HTTP_400_BAD_REQUEST)
         
-    # Check if expired
     if expiry and timezone.now() > expiry:
         return Response({'error': '2FA code expired'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Success: Generate Token
     token, _ = Token.objects.get_or_create(user=user)
-    
-    # Clear OTP so it can't be reused
     user.otp = None 
     user.save()
 
@@ -220,10 +208,10 @@ def login(request):
         'username': user.username,
     })
 
+# Legacy verify
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def otp_verify(request):
-    """Legacy phone verification helper."""
     ser = OTPVerifySerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     phone = ser.validated_data['phone']
@@ -249,7 +237,6 @@ def otp_verify(request):
     })
 
 # --- PRODUCTS & CART ---
-
 class ProductList(generics.ListAPIView):
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
@@ -302,11 +289,9 @@ def cart_remove(request, item_id):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 # --- ORDERS ---
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def order_summary(request):
-    """Processes checkout, creates Order/Items, and clears cart."""
     cart_items = Cart.objects.filter(user=request.user).select_related('product')
     if not cart_items.exists():
         return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
