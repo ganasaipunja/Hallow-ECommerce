@@ -119,7 +119,16 @@ WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True
 # Cloudinary Storage Configuration
 if os.environ.get('CLOUDINARY_URL'):
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    import re
+    # cloudinary://api_key:api_secret@cloud_name
+    match = re.match(r'cloudinary://(?P<api_key>.*):(?P<api_secret>.*)@(?P<cloud_name>.*)', os.environ.get('CLOUDINARY_URL'))
+    if match:
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': match.group('cloud_name'),
+            'API_KEY': match.group('api_key'),
+            'API_SECRET': match.group('api_secret'),
+        }
+        DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
