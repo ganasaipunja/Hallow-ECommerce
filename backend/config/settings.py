@@ -120,12 +120,9 @@ WHITENOISE_AUTOREFRESH = True
 # Cloudinary Storage Configuration
 if os.environ.get('CLOUDINARY_URL'):
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    # Extract cloud_name from CLOUDINARY_URL format: cloudinary://api_key:api_secret@cloud_name
-    cloud_name = os.environ.get('CLOUDINARY_URL').split('@')[-1]
-    MEDIA_URL = f'https://res.cloudinary.com/{cloud_name}/'
-else:
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
