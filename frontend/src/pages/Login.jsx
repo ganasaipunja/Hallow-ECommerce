@@ -245,7 +245,8 @@ export default function Login({ onLogin }) {
                   <label style={{ color: '#1e40af', fontWeight: '800', display: 'block', marginBottom: '10px' }}>Enter 6-Digit Code</label>
                   <input
                     value={otp}
-                    onChange={e => setOtp(e.target.value)}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                    maxLength={6}
                     placeholder="000000"
                     required
                     autoFocus
@@ -299,7 +300,8 @@ export default function Login({ onLogin }) {
                   <label style={{ color: '#166534', fontWeight: '800', display: 'block', marginBottom: '10px' }}>One-Time Password</label>
                   <input
                     value={otp}
-                    onChange={e => setOtp(e.target.value)}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                    maxLength={6}
                     placeholder="Enter OTP"
                     required
                     autoFocus
