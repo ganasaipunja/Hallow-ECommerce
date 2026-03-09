@@ -23,7 +23,7 @@ export async function register(body) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.username?.[0] || data.password?.[0] || data.email?.[0] || 'Registration failed');
+  if (!res.ok) throw new Error(data.error || data.username?.[0] || data.password?.[0] || data.email?.[0] || 'Registration failed');
   return data;
 }
 
